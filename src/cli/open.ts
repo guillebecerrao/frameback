@@ -1,4 +1,5 @@
 /** `frameback open` — start the review server for a video, or attach to one that is already running. */
+import { checkWebhookConfig } from "../core/webhook.js";
 import path from "node:path";
 import open from "open";
 import type { Health, RegisterReviewRequest, RegisterReviewResponse } from "../core/index.js";
@@ -18,6 +19,7 @@ export interface OpenCommandOptions {
   share?: ShareMode;
   /** hours the share key stays valid */
   shareTtl?: number;
+  webhook?: string;
 }
 
 /** How many consecutive ports to try after the requested one. */
@@ -113,6 +115,8 @@ async function openBrowser(url: string): Promise<void> {
 }
 
 export async function openCommand(videoArg: string, opts: OpenCommandOptions): Promise<void> {
+  if (opts.webhook) process.env.FRAMEBACK_WEBHOOK_URL = opts.webhook;
+  const webhookOrigin = checkWebhookConfig();
   const video = await assertVideoFile(videoArg);
   const request: RegisterReviewRequest = {
     video,
@@ -127,6 +131,11 @@ export async function openCommand(videoArg: string, opts: OpenCommandOptions): P
       const found = await probePort(port);
       if (found === "other") break; // not ours: next port
       if (found === "frameback") {
+        if (opts.webhook) {
+          console.error(
+            `frameback: --webhook ignored: a Frameback server is already running on port ${port} and it is the one that writes the events. Set FRAMEBACK_WEBHOOK_URL when you start that server.`,
+          );
+        }
         const health = opts.share
           ? ((await (await fetch(`http://${HOST}:${port}/api/health`)).json().catch(() => null)) as Partial<Health> | null)
           : null;
@@ -173,6 +182,7 @@ export async function openCommand(videoArg: string, opts: OpenCommandOptions): P
         throw e;
       }
       const { entry, prepared } = result;
+      if (webhookOrigin) console.error(`frameback: webhook push enabled -> ${webhookOrigin} (opt-in; human events only)`);
       announce(server.port, entry.rid, entry.reviewDir, !!opts.share);
       report(prepared.carried, prepared.warnings);
       if (opts.dev) {

@@ -130,6 +130,7 @@ program
   .option("--no-carry", "do not carry comments over from the previous _vN version")
   .option("--force", "keep reviewing a video that changed after it was opened (re-adopts the file as it is now)")
   .option("--dev", "API only; the Vite dev server serves the UI")
+  .option("--webhook <url>", "POST human events (review.submitted, thread.message) to this URL; secret via FRAMEBACK_WEBHOOK_SECRET")
   .option("--share [network]", "let another computer review with a private link: all private networks (Tailscale + home/office wifi), or `tailscale` for Tailscale only", shareArg)
   .option("--share-ttl <hours>", `hours the share link stays valid (default 12, max ${MAX_SHARE_TTL_HOURS})`, ttlArg)
   .action(

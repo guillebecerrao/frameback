@@ -10,6 +10,10 @@ versioning follows [SemVer](https://semver.org/).
 - Docker: `Dockerfile` (multi-stage, Node 22 + ffmpeg), `docker-compose.yml` and an entrypoint that registers the videos
   in `/videos` once the server answers `/api/health`. New `FRAMEBACK_BIND` variable (default `127.0.0.1`); a warning is
   printed on stderr whenever it is not loopback.
+- Optional webhook push (`FRAMEBACK_WEBHOOK_URL`, `--webhook`, `FRAMEBACK_WEBHOOK_SECRET`, `FRAMEBACK_WEBHOOK_EVENTS`):
+  human feedback events (`review.submitted`, `thread.message` by default) are POSTed, HMAC-signed, as soon as they are
+  written. Off by default. `reviewDir` in the payload is relative (`review/<stem>`, or prefixed with the path under
+  `FRAMEBACK_WEBHOOK_ROOT`), never absolute. Redirects are not followed. `--webhook` on an already running server prints a notice.
 
 ## [0.1.2] - 2026-11-12
 

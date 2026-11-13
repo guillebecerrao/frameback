@@ -100,6 +100,27 @@ FRAMEBACK_VIDEOS=/path/to/videos docker compose up -d --build
 - An agent on the host reads the same `review/` folder directly, or runs the CLI through `docker exec frameback frameback ...`
   using container paths (`/videos/...`).
 
+## Webhook push (optional)
+
+By default an agent learns about new feedback by watching `events.ndjson` (`frameback watch`, MCP). If you would rather
+have Frameback call you, set a webhook; it is **off unless configured** and the only outbound request Frameback can make:
+
+| Variable | Meaning |
+|----------|---------|
+| `FRAMEBACK_WEBHOOK_URL` | `http(s)` URL to POST to. Also available as `frameback open --webhook <url>`. |
+| `FRAMEBACK_WEBHOOK_SECRET` | Optional. Signs the body: `X-Webhook-Signature-V2` = hex HMAC-SHA256 of `<X-Webhook-Timestamp>.<body>`. |
+| `FRAMEBACK_WEBHOOK_EVENTS` | Comma-separated event types. Default `review.submitted,thread.message`. |
+| `FRAMEBACK_WEBHOOK_ROOT` | Optional. Send `reviewDir` relative to this folder (e.g. `/videos` in Docker), so it reads `client-a/review/final_v1` instead of `review/final_v1`. |
+
+Only events written by the **human** are sent, so an agent never triggers itself. Body (`reviewDir` is relative to the video's folder):
+
+```json
+{ "event_type": "review.submitted", "review": "final_v1", "commentId": null, "seq": 12,
+  "actor": "human", "reviewDir": "review/final_v1", "data": { "counts": { "total": 3 }, "round": 1 } }
+```
+
+Delivery is fire and forget with 3 attempts; a dead endpoint never blocks the UI. Redirects are not followed, so the signed body is only ever sent to the URL you configured. `--webhook` only applies to the server that `frameback open` starts: attaching to a running server prints a notice and the flag does nothing.
+
 <!-- Screenshot / GIF of the review UI: add docs/media/frameback.gif and embed it here before announcing. -->
 
 ## Review from another computer
@@ -190,7 +211,7 @@ Not using Claude Code? Point any agent at [`docs/INTEGRATION.md`](docs/INTEGRATI
 ## Privacy
 
 Everything runs on your machine. The server binds to `127.0.0.1`, serves only the videos you opened, and the review
-data lives in a `review/` folder next to each video. There is no telemetry, no account, and no network access.
+data lives in a `review/` folder next to each video. There is no telemetry, no account, and no network access, unless you opt in to the webhook push (see above).
 
 ## Roadmap
 
